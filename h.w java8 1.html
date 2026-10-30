@@ -1,0 +1,378 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alarm Clock</title>
+
+    <!-- CSS -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #242a46, #d62fb7);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 350px;
+            background: white;
+            padding: 35px 25px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .icon {
+            font-size: 65px;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            font-size: 25px;
+            color: #2c132a  #d62fb7;
+            margin-bottom: 20px;
+        }
+
+        #time {
+            font-size: 38px;
+            color: #262135 ;
+            margin-bottom: 25px;
+        }
+
+        .select-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        select {
+            width: 50%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #7056c9;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+
+        button:hover {
+            background: #5038a5;
+        }
+
+        #stopAlarm {
+            background: #e65bcf;
+        }
+
+        #stopAlarm:hover {
+            background: #c93db2;
+        }
+
+        #message {
+            color: #7056c9;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 400px) {
+            .container {
+                width: 90%;
+            }
+
+            #time {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="icon" >⏰</div>
+
+        <h1>Alarm Clock</h1>
+
+        <h2 id="time">00:00:00</h2>
+
+        <div class="select-box">
+
+            <select id="hours">
+                <option value="" selected disabled>Hour</option>
+            </select>
+
+            <select id="minutes">
+                <option value="" selected disabled>Minute</option>
+            </select>
+
+        </div>
+
+        <button id="setAlarm">Set Alarm</button>
+
+        <button id="stopAlarm">Stop Alarm</button>
+
+        <p id="message">Select your alarm time</p>
+
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+
+        // 1. Select HTML elements
+
+        let time = document.querySelector("#time");
+        let hours = document.querySelector("#hours");
+        let minutes = document.querySelector("#minutes");
+        let button = document.querySelector("#setAlarm");
+        let stopButton = document.querySelector("#stopAlarm");
+        let message = document.querySelector("#message");
+
+
+        // 2. Create hours options
+
+        for (let i = 0; i < 24; i++) {
+
+            let option = document.createElement("option");
+
+            option.value = i;
+            option.textContent = String(i).padStart(2, "0");
+
+            hours.appendChild(option);
+
+        }
+
+
+        // 3. Create minutes options
+
+        for (let i = 0; i < 60; i++) {
+
+            let option = document.createElement("option");
+
+            option.value = i;
+            option.textContent = String(i).padStart(2, "0");
+
+            minutes.appendChild(option);
+
+        }
+
+
+        // 4. Variables
+
+        let alarmTime = null;
+        let audioContext = null;
+        let oscillator = null;
+        let gainNode = null;
+        let alarmInterval = null;
+
+
+        // 5. Update digital clock
+
+        function updateClock() {
+
+            let now = new Date();
+
+            let h = String(now.getHours()).padStart(2, "0");
+            let m = String(now.getMinutes()).padStart(2, "0");
+            let s = String(now.getSeconds()).padStart(2, "0");
+
+            time.textContent = `${h}:${m}:${s}`;
+
+
+            // Check alarm time
+
+            if (alarmTime !== null && now >= alarmTime) {
+
+                alarmTime = null;
+
+                message.textContent = "Wake Up! Alarm is ringing!";
+
+                playAlarm();
+
+            }
+
+        }
+
+
+        // 6. Set alarm
+
+        button.addEventListener("click", async function () {
+
+            if (hours.value === "" || minutes.value === "") {
+
+                message.textContent = "Please select hour and minute!";
+
+                return;
+
+            }
+
+            let AudioClass = window.AudioContext || window.webkitAudioContext;
+
+            if (!AudioClass) {
+
+                message.textContent = "Audio is not supported!";
+
+                return;
+
+            }
+
+            try {
+
+                if (!audioContext) {
+
+                    audioContext = new AudioClass();
+
+                }
+
+                if (audioContext.state === "suspended") {
+
+                    await audioContext.resume();
+
+                }
+
+            } catch (error) {
+
+                message.textContent = "Could not activate sound!";
+
+                return;
+
+            }
+
+
+            let now = new Date();
+
+            let target = new Date();
+
+            target.setHours(Number(hours.value));
+            target.setMinutes(Number(minutes.value));
+            target.setSeconds(0);
+            target.setMilliseconds(0);
+
+
+            // If time has passed, set alarm for tomorrow
+
+            if (target <= now) {
+
+                target.setDate(target.getDate() + 1);
+
+            }
+
+            alarmTime = target;
+
+            message.textContent = "Alarm successfully set!";
+
+        });
+
+
+        // 7. Play alarm sound
+
+        function playAlarm() {
+
+            if (!audioContext || audioContext.state !== "running") {
+
+                message.textContent = "Please enable sound!";
+
+                return;
+
+            }
+
+            if (oscillator) {
+
+                return;
+
+            }
+
+            oscillator = audioContext.createOscillator();
+
+            gainNode = audioContext.createGain();
+
+            oscillator.type = "sine";
+
+            oscillator.frequency.value = 800;
+
+            gainNode.gain.value = 0;
+
+            oscillator.connect(gainNode);
+
+            gainNode.connect(audioContext.destination);
+
+            oscillator.start();
+
+
+            // Make alarm beep
+
+            let beepOn = false;
+
+            alarmInterval = setInterval(function () {
+
+                beepOn = !beepOn;
+
+                gainNode.gain.setTargetAtTime(
+                    beepOn ? 0.3 : 0,
+                    audioContext.currentTime,
+                    0.02
+                );
+
+            }, 500);
+
+        }
+
+
+        // 8. Stop alarm
+
+        stopButton.addEventListener("click", function () {
+
+            alarmTime = null;
+
+            if (alarmInterval) {
+
+                clearInterval(alarmInterval);
+
+                alarmInterval = null;
+
+            }
+
+            if (oscillator) {
+
+                oscillator.stop();
+
+                oscillator = null;
+
+                gainNode = null;
+
+            }
+
+            message.textContent = "Alarm stopped!";
+
+        });
+
+
+        // 9. Update clock every second
+
+        setInterval(updateClock, 1000);
+
+        updateClock();
+
+    </script>
+
+</body>
+</html>
